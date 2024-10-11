@@ -14,7 +14,7 @@ SIGMA_ACCEL = 0.5
 
 class Cell:
 
-    def __init__(self, space, position, radius, color, images) -> None:
+    def __init__(self, space, position, radius, color, images, angle) -> None:
         mass = (radius - CELL_MIN_SIZE)/(CELL_MAX_SIZE - CELL_MIN_SIZE)*(CELL_MAX_MASS - CELL_MIN_MASS) + CELL_MIN_MASS
         inertia = pymunk.moment_for_circle(mass, 0, radius)
         
@@ -22,6 +22,7 @@ class Cell:
         self.body = pymunk.Body(mass, inertia)
         self.body.cell_object = self
         self.body.position = position
+        self.body.angle = angle
         
         self.shape = pymunk.Circle(self.body, radius)
         self.shape.elasticity = 0.8
@@ -31,7 +32,7 @@ class Cell:
         self.random_accel = 0
         self.random_accel_old = 0
         self.body_angular_velocity_old = 0
-        self.energy = 3*CELL_MAX_ENERGY/4
+        self.energy = 0.75*CELL_MAX_ENERGY
         self.images = []
         for image in images:
             self.images.append(pygame.transform.scale(image, (int(radius * 2.2), int(radius * 2.2))))  # Adjust to radius
@@ -90,15 +91,16 @@ class Cell:
     #     pygame.draw.line(window, self.color, self.body.position, (self.body.position[0] + 1.3*self.shape.radius*math.cos(self.body.angle), self.body.position[1] + 1.3*self.shape.radius*math.sin(self.body.angle)), 4)
     
     @classmethod
-    def create_new_cells(cls, space, nb_new_cell, images):
+    def create_new_cells(cls, space, nb_new_cell, images, x=None, y=None, angle=0, radius=None):
         new_cells = []
         for i in range(nb_new_cell):
-            x=random.randint(0, WINDOW_WIDTH)
-            y=random.randint(0, WINDOW_HEIGHT)
-            radius=random.randint(CELL_MIN_SIZE, CELL_MAX_SIZE)
-            color=(122, 0, 122) if i != 0 else (0, 45, 223)
-            # image=image
-            new_cells.append(Cell(space, (x, y), radius, color, images))
+            # Réinitialiser les variables à None pour garantir la génération de nouvelles valeurs si non fournies
+            x_rand = x if x is not None else random.randint(0, WINDOW_WIDTH)
+            y_rand = y if y is not None else random.randint(0, WINDOW_HEIGHT)
+            radius_rand = radius if radius is not None else random.randint(CELL_MIN_SIZE, CELL_MAX_SIZE)
+            
+            color = (122, 0, 122) if i != 0 else (0, 45, 223)
+            new_cells.append(Cell(space, (x_rand, y_rand), radius_rand, color, images, angle))
         return new_cells
 
     def update_status(self):
@@ -119,6 +121,7 @@ class Cell:
     def has_eaten(self, body):
         self.energy += body.body.mass
         self.life_points += 5
+        # WARNING cap value 
 
     def draw(self, window):
         rotated_image = pygame.transform.rotate(self.image, -math.degrees(self.body.angle))
@@ -146,18 +149,16 @@ class Cell:
         # Include oppressor's speed in damage ?
         self.life_points -= 20
 
-    def get_birth(self):
-        if self.energy > 3*CELL_MAX_ENERGY/4 and menu_globals.game_clock - self.last_reproduction_date > REPRODUCTION_DELAY*FPS:
-            self.energy -= 25
-            self.last_reproduction_date = menu_globals.game_clock
-            return Cell.create_new_cells(self.space, 1, self.images)
-
-    # def get_birth(self, space, images):
-    #     print(f"Energy: {self.energy}, Last Reproduction: {self.last_reproduction_date}, Game Clock: {menu_globals.game_clock}")
-    #     if self.energy > 50 and menu_globals.game_clock - self.last_reproduction_date > REPRODUCTION_DELAY*FPS:
+    # def get_birth(self):
+    #     if self.energy > 3*CELL_MAX_ENERGY/4 and menu_globals.game_clock - self.last_reproduction_date > REPRODUCTION_DELAY*FPS:
     #         self.energy -= 25
     #         self.last_reproduction_date = menu_globals.game_clock
-    #         print("Creating new cells...")
-    #         new_cells = Cell.create_new_cells(space, 1, images)
-    #         print("New cells created:", new_cells)
-    #         return new_cells
+    #         return Cell.create_new_cells(self.space, 1, self.images)
+
+    def get_birth(self):
+        if self.energy > 0.75*CELL_MAX_ENERGY and menu_globals.game_clock - self.last_reproduction_date > REPRODUCTION_DELAY*FPS:
+            self.energy -= 25
+            self.last_reproduction_date = menu_globals.game_clock
+            x = self.body.position[0] + 3*self.shape.radius*math.cos(self.body.angle + math.pi)
+            y = self.body.position[1] + 3*self.shape.radius*math.sin(self.body.angle + math.pi)
+            return Cell.create_new_cells(self.space, 1, self.images, x, y, self.body.angle + math.pi, self.shape.radius)

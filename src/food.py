@@ -28,13 +28,13 @@ class Food:
     # def draw(self, window):
     #     pygame.draw.circle(window, self.color, self.body.position, self.shape.radius)
 
-    def create_new_foods(self, nb_new_food):
-        for i in range(nb_new_food):
-            x=random.randint(0, WINDOW_WIDTH)
-            y=random.randint(0, WINDOW_HEIGHT)
-            radius=random.randint(CELL_MIN_SIZE, CELL_MAX_SIZE)
-            color=(120, 190, 120) 
-            self.all_foods.append(Food(self.space, (x, y), radius, color))
+    # def create_new_foods(self, nb_new_food):
+    #     for i in range(nb_new_food):
+    #         x=random.randint(0, WINDOW_WIDTH)
+    #         y=random.randint(0, WINDOW_HEIGHT)
+    #         radius=random.randint(CELL_MIN_SIZE, CELL_MAX_SIZE)
+    #         color=(120, 190, 120) 
+    #         self.all_foods.append(Food(self.space, (x, y), radius, color))
             
     @classmethod
     def create_new_foods(cls, space, nb_new_food, image):
