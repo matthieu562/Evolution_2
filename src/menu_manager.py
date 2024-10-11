@@ -28,6 +28,7 @@ class Menu_Manager:
         exit()
     
     def start_game(self):
+        menu_globals.is_first_loop = True
         menu_globals.game_running = True
         menu_globals.game_paused = False
 
