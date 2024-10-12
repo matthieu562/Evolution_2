@@ -50,7 +50,7 @@ class Camera:
         
         # Appliquer le zoom
         self.zoom_factor += zoom_amount
-        self.zoom_factor = max(self.zoom_factor, 0.1)  # Empêcher le zoom de devenir négatif ou nul
+        self.zoom_factor = min(5, max(self.zoom_factor, 0.1))  # Empêcher le zoom de devenir négatif ou nul
 
         # Recalculer l'offset pour maintenir la position de la souris constante
         self.offset_x = mouse_x - world_mouse_x * self.zoom_factor
