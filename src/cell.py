@@ -38,7 +38,7 @@ class Cell:
             self.images.append(pygame.transform.scale(image, (int(radius * 2.2), int(radius * 2.2))))  # Adjust to radius
         self.image = self.images[0]
         self.life_points = CELL_MAX_LIFE_POINTS
-        self.damage = 34
+        self.damage = 20
         self.last_reproduction_date = menu_globals.game_clock
 
         self.space = space
@@ -104,8 +104,9 @@ class Cell:
         return new_cells
 
     def update_status(self):
-        self.decrease_energy()
         self.choose_correct_image()
+        self.update_image_energy_level()
+        self.decrease_energy()
         new_born = self.get_birth()
         return self.is_alive(), new_born
 
@@ -116,13 +117,49 @@ class Cell:
 
     def decrease_energy(self):
         if menu_globals.game_clock % FPS == 0:
-            self.energy = self.energy - (3)
+            self.energy = self.energy - ENERGY_LOSS_OVERTIME
     
     def has_eaten(self, body):
         self.energy += body.body.mass
         self.life_points += 5
-        # WARNING cap value 
+        if self.energy > CELL_MAX_ENERGY:
+            self.energy = CELL_MAX_ENERGY
+        if self.life_points > CELL_MAX_LIFE_POINTS:
+            self.life_points = CELL_MAX_LIFE_POINTS
 
+    def choose_correct_image(self):
+        if self.life_points >= 2*CELL_MAX_LIFE_POINTS/3:
+            self.image = self.images[0]
+        elif self.life_points >= CELL_MAX_LIFE_POINTS/3:
+            self.image = self.images[1]
+        elif self.life_points >= 0:
+            self.image = self.images[2]
+        # else:
+        #     self.image = self.images[0]
+
+    def update_image_energy_level(self):
+        # Calculer l'alpha (la transparence de l'image) en fonction de l'énergie
+        alpha_min_threshold = 90 # sur 255
+        if self.energy > 100 / 4:
+            alpha = int(((self.energy - (100 / 4)) / (100 - (100 / 4))) * (255 - alpha_min_threshold) + alpha_min_threshold)
+        else:
+            alpha = alpha_min_threshold
+        self.image.set_alpha(alpha)
+
+    def losses_life_points(self, attacker):
+        # Include oppressor's speed in damage ?
+        # Damage is applied only once per collision, thus you need to charge the opponent to apply multiple damage
+        self.life_points -= self.damage
+
+    def get_birth(self):
+        if self.energy > 0.75*CELL_MAX_ENERGY and menu_globals.game_clock - self.last_reproduction_date > REPRODUCTION_DELAY*FPS:
+            self.energy -= 25
+            self.last_reproduction_date = menu_globals.game_clock
+            x = self.body.position[0] + 3*self.shape.radius*math.cos(self.body.angle + math.pi)
+            y = self.body.position[1] + 3*self.shape.radius*math.sin(self.body.angle + math.pi)
+            return Cell.create_new_cells(self.space, 1, self.images, x, y, self.body.angle + math.pi, self.shape.radius)
+
+    # Draw cell as a simple circle with the given color, should be in camera class
     def draw(self, window):
         rotated_image = pygame.transform.rotate(self.image, -math.degrees(self.body.angle))
         alpha_min_threshold = 90
@@ -134,31 +171,3 @@ class Cell:
 
         image_rect = rotated_image.get_rect(center=self.body.position)
         window.blit(rotated_image, image_rect.topleft)
-
-    def choose_correct_image(self):
-        if self.life_points >= 2*CELL_MAX_LIFE_POINTS/3:
-            self.image = self.images[0]
-        elif self.life_points >= CELL_MAX_LIFE_POINTS/3:
-            self.image = self.images[1]
-        elif self.life_points >= 0:
-            self.image = self.images[2]
-        else:
-            self.image = self.images[0]
-
-    def losses_life_points(self, oppressor):
-        # Include oppressor's speed in damage ?
-        self.life_points -= 20
-
-    # def get_birth(self):
-    #     if self.energy > 3*CELL_MAX_ENERGY/4 and menu_globals.game_clock - self.last_reproduction_date > REPRODUCTION_DELAY*FPS:
-    #         self.energy -= 25
-    #         self.last_reproduction_date = menu_globals.game_clock
-    #         return Cell.create_new_cells(self.space, 1, self.images)
-
-    def get_birth(self):
-        if self.energy > 0.75*CELL_MAX_ENERGY and menu_globals.game_clock - self.last_reproduction_date > REPRODUCTION_DELAY*FPS:
-            self.energy -= 25
-            self.last_reproduction_date = menu_globals.game_clock
-            x = self.body.position[0] + 3*self.shape.radius*math.cos(self.body.angle + math.pi)
-            y = self.body.position[1] + 3*self.shape.radius*math.sin(self.body.angle + math.pi)
-            return Cell.create_new_cells(self.space, 1, self.images, x, y, self.body.angle + math.pi, self.shape.radius)

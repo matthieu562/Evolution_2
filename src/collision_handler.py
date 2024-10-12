@@ -67,7 +67,6 @@ class Collision_Handler:
             
         return True  # Continue with the normal collision handling
 
-
     def handle_collision_cell_vs_food(self, arbiter, space, data):
         ## Handle cell vs food
         # Get the shapes involved in the collision

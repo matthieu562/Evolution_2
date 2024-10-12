@@ -5,12 +5,57 @@ import sys
 
 class Camera:
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, window) -> None:
+        self.zoom_factor = 1
+        self.offset_x, self.offset_y = 0, 0
+        self.dragging = False
+        self.last_mouse_pos = None
+        self.window = window
 
-    # Fonction de transformation générique
-    def transform_shape(self, x, y, zoom_factor, offset_x, offset_y):
-        return x * zoom_factor + offset_x, y * zoom_factor + offset_y
+    def transform_shape(self, x, y):
+        return x * self.zoom_factor + self.offset_x, y * self.zoom_factor + self.offset_y
+
+    def draw_transformed_image(self, image, pos, angle=0):
+        x, y = pos
+        transformed_x, transformed_y = self.transform_shape(x, y)
+        
+        # Redimensionner l'image en fonction du facteur de zoom
+        new_width = int(image.get_width() * self.zoom_factor)
+        new_height = int(image.get_height() * self.zoom_factor)
+        resized_image = pygame.transform.scale(image, (new_width, new_height))
+
+        # Appliquer la rotation à l'image
+        rotated_image = pygame.transform.rotate(resized_image, -math.degrees(angle))
+        
+        # Obtenir le rectangle de l'image après rotation pour centrer l'image sur la position
+        image_rect = rotated_image.get_rect(center=(transformed_x, transformed_y))
+
+        # Dessiner l'image transformée dans la fenêtre
+        self.window.blit(rotated_image, image_rect.topleft)
+
+    def draw_transformed_line(self, color, start_pos, end_pos, width):
+        x1, y1 = self.transform_shape(start_pos.x, start_pos.y)
+        x2, y2 = self.transform_shape(end_pos.x, end_pos.y)
+        x1, y1 = int(x1), int(y1)
+        x2, y2 = int(x2), int(y2)
+        pygame.draw.line(self.window, color, (x1, y1), (x2, y2), int(width))
+
+    def zoom(self, zoom_amount):
+        # Obtenir la position de la souris
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        
+        # Convertir la position de la souris dans le système de coordonnées de la caméra
+        world_mouse_x = (mouse_x - self.offset_x) / self.zoom_factor
+        world_mouse_y = (mouse_y - self.offset_y) / self.zoom_factor
+        
+        # Appliquer le zoom
+        self.zoom_factor += zoom_amount
+        self.zoom_factor = max(self.zoom_factor, 0.1)  # Empêcher le zoom de devenir négatif ou nul
+
+        # Recalculer l'offset pour maintenir la position de la souris constante
+        self.offset_x = mouse_x - world_mouse_x * self.zoom_factor
+        self.offset_y = mouse_y - world_mouse_y * self.zoom_factor
+
 
     # # Fonction pour dessiner des formes avec transformation
     # def draw_transformed_rect(self, window, color, rect, zoom_factor, offset_x, offset_y, width=0):
@@ -25,11 +70,6 @@ class Camera:
     #     transformed_x, transformed_y = self.transform_shape(x, y, zoom_factor, offset_x, offset_y)
     #     transformed_radius = radius * zoom_factor
     #     pygame.draw.circle(window, color, (int(transformed_x), int(transformed_y)), int(transformed_radius), width)
-
-    # def draw_transformed_line(self, window, color, start_pos, end_pos, zoom_factor, offset_x, offset_y, width=1):
-    #     x1, y1 = self.transform_shape(start_pos[0], start_pos[1], zoom_factor, offset_x, offset_y)
-    #     x2, y2 = self.transform_shape(end_pos[0], end_pos[1], zoom_factor, offset_x, offset_y)
-    #     pygame.draw.line(window, color, (x1, y1), (x2, y2), width)
 
     # # Fonction pour dessiner la scène
     # def draw_scene_old(self, color, window, zoom_factor, offset_x, offset_y):
@@ -51,32 +91,6 @@ class Camera:
     #     resized_image = pygame.transform.scale(image, (new_width, new_height))
         
     #     window.blit(resized_image, (transformed_x, transformed_y))
-
-    def draw_transformed_image(self, window, image, pos, angle, energy, zoom_factor, offset_x, offset_y):
-        x, y = pos
-        transformed_x, transformed_y = self.transform_shape(x, y, zoom_factor, offset_x, offset_y)
-        
-        # Redimensionner l'image en fonction du facteur de zoom
-        new_width = int(image.get_width() * zoom_factor)
-        new_height = int(image.get_height() * zoom_factor)
-        resized_image = pygame.transform.scale(image, (new_width, new_height))
-
-        # Appliquer la rotation à l'image
-        rotated_image = pygame.transform.rotate(resized_image, -math.degrees(angle))
-        
-        # Calculer l'alpha en fonction de l'énergie
-        alpha_min_threshold = 90 # sur 255
-        if energy > 100 / 4:
-            alpha = int(((energy - (100 / 4)) / (100 - (100 / 4))) * (255 - alpha_min_threshold) + alpha_min_threshold)
-        else:
-            alpha = alpha_min_threshold
-        rotated_image.set_alpha(alpha)
-
-        # Obtenir le rectangle de l'image après rotation pour centrer l'image sur la position
-        image_rect = rotated_image.get_rect(center=(transformed_x, transformed_y))
-
-        # Dessiner l'image transformée dans la fenêtre
-        window.blit(rotated_image, image_rect.topleft)
 
     # # Fonction pour dessiner la scène
     # def draw_scene(self, window, image, positions, zoom_factor, offset_x, offset_y):
