@@ -127,11 +127,16 @@ class Cell:
 
     def select_target(self):
         self.target = None
-        for visible_object in self.visible_objects[::-1]:
-            if isinstance(visible_object, Food):
-                self.target = visible_object
-        if not self.target and self.visible_objects:
-            self.target = self.visible_objects[0]
+        if self.energy >= 50 and self.life_points >= 50:
+            for visible_object in self.visible_objects[::-1]:
+                if isinstance(visible_object, Cell):
+                    self.target = visible_object
+            if not self.target and self.visible_objects:
+                self.target = self.visible_objects[0]
+        else:
+            for visible_object in self.visible_objects[::-1]:
+                if isinstance(visible_object, Food):
+                    self.target = visible_object
                 
     def is_alive(self):
         has_energy=True if self.energy > 0 else False
@@ -175,7 +180,7 @@ class Cell:
         self.life_points -= self.damage
 
     def get_charged(self, attacker):
-        self.life_points -= min(20, max(attacker.body.velocity.length, 10))
+        self.life_points -= min(20, max(attacker.body.velocity.length, 10)) + 10
 
     def get_birth(self):
         if self.energy > 0.75*CELL_MAX_ENERGY and menu_globals.game_clock - self.last_reproduction_date > REPRODUCTION_DELAY*FPS:

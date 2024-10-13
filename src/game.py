@@ -1,5 +1,4 @@
 import math
-import os
 import pygame
 import pymunk
 import numpy as np
@@ -20,13 +19,7 @@ NB_FOODS = 50
 
 class Game:
     
-    def __init__(self) -> None:
-        pygame.init()
-        
-        # Set up window 
-        pygame.display.set_caption(GAME_TITLE)
-        os.environ['SDL_VIDEO_WINDOW_POS'] = '700,100'  # Defines where the windows spawns
-
+    def __init__(self, menu_manager, window) -> None:       
         # Handle the Space
         self.space = pymunk.Space()
         self.space.gravity = (0, 0)  # Pas de gravité
@@ -39,9 +32,9 @@ class Game:
         self.space.add_collision_handler(CELL_COLLISION_TYPE, CELL_COLLISION_TYPE).begin = self.collision_handler.handle_collision_cell_vs_cell
         self.space.add_collision_handler(CELL_COLLISION_TYPE, CELL_COLLISION_TYPE).separate  = self.collision_handler.separate_cells
 
-        # Init attributes
-        self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
-        self.menu_manager = Menu_Manager()
+        # self.menu_manager = Menu_Manager()
+        self.window = window
+        self.menu_manager = menu_manager
         self.clock = pygame.time.Clock()
         self.population = Population(self.space)
         self.images = Images()
@@ -64,6 +57,7 @@ class Game:
         self.brain = Brain()
         
         ## Attributes created later
+        self.display_user_position = False
         self.events = None
         # self.walls = None
         
@@ -79,7 +73,8 @@ class Game:
                 if event.key == pygame.K_r:
                     self.camera.zoom_factor = 1  # Zoom par défaut
                     self.camera.offset_x, self.camera.offset_y = 0, 0  # Offset de déplacement
-
+                if event.key == pygame.K_SPACE:
+                    self.display_user_position = not self.display_user_position
             # Gestion du zoom
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:  # Zoom avant
@@ -90,6 +85,12 @@ class Game:
                     zoom_amount = 0
                     
                 self.camera.zoom(zoom_amount)
+
+            if event.type == pygame.VIDEORESIZE:
+                # Redimensionner la fenêtre
+                # self.window = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                # Adapter le menu à la nouvelle taille
+                self.menu_manager.resize_menus(event.w, event.h)
 
             # Gestion du clic droit pour la translation (pan)
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:  # Clic droit
@@ -157,11 +158,13 @@ class Game:
                     cell.update_status_before_move(self.food_and_cell_filter)
                     
                 self.collision_handler.handle_ongoing_collisions()
-                    
+                
                 for cell in self.population.all_cells:
                     # cell 0 used for debug :
                     # if self.population.all_cells.index(cell) == 0 and cell.target:
-                    #     self.camera.draw_target(cell)
+                    #     self.camera.draw_circle(cell.target)
+                    if self.population.all_cells.index(cell) == 0 and self.display_user_position:
+                        self.camera.draw_circle(cell)
                     is_controlled_by_user = self.population.all_cells.index(cell) == 0 and is_prey_controlled
                     brain_command = None
                     if cell.target:

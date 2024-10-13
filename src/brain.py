@@ -1,8 +1,8 @@
 import math
 
 
-MAX_ACCELERATION_BOT = 2
-MAX_ANGULAR_SPEED_BOT = 45
+MAX_ACCELERATION_BOT = 2.5 # 2 
+MAX_ANGULAR_SPEED_BOT = 140 # 70
 MAX_SPEED_BOT = 100000
 
 def calculate_relative_angle(cell, target_x, target_y):

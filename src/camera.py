@@ -75,11 +75,11 @@ class Camera:
         self.draw_transformed_line((255, 255, 0), cell.body.position, point_left, 2)  # Ligne gauche
         self.draw_transformed_line((255, 255, 0), cell.body.position, point_right, 2)  # Ligne droite
         
-    def draw_target(self, cell):
-        x, y = cell.target.body.position
+    def draw_circle(self, cell):
+        x, y = cell.body.position
         color = (255, 255, 255)
         transformed_x, transformed_y = self.transform_shape(x, y)
-        transformed_radius = int(cell.target.shape.radius * self.zoom_factor * 4)
+        transformed_radius = int(cell.shape.radius * self.zoom_factor * 4)
         pygame.draw.circle(self.window, color, (int(transformed_x), int(transformed_y)), int(transformed_radius), transformed_radius)
 
     # # Fonction pour dessiner des formes avec transformation
