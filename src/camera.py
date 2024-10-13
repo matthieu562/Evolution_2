@@ -2,6 +2,8 @@ import math
 import pygame
 import sys
 
+from constants import *
+
 
 class Camera:
 
@@ -56,6 +58,29 @@ class Camera:
         self.offset_x = mouse_x - world_mouse_x * self.zoom_factor
         self.offset_y = mouse_y - world_mouse_y * self.zoom_factor
 
+    def draw_vision_cone(self, cell):
+        """Dessine le cône de vision de la cellule."""
+        vision_distance = VISION_DISTANCE #* self.zoom_factor
+        angle_left = cell.body.angle - VISION_ANGLE / 2
+        angle_right = cell.body.angle + VISION_ANGLE / 2
+        
+        point_left = pygame.Vector2()
+        point_left.x = cell.body.position.x + vision_distance * math.cos(angle_left)
+        point_left.y = cell.body.position.y + vision_distance * math.sin(angle_left)
+        
+        point_right = pygame.Vector2()
+        point_right.x = cell.body.position.x + vision_distance * math.cos(angle_right)
+        point_right.y = cell.body.position.y + vision_distance * math.sin(angle_right)
+        
+        self.draw_transformed_line((255, 255, 0), cell.body.position, point_left, 2)  # Ligne gauche
+        self.draw_transformed_line((255, 255, 0), cell.body.position, point_right, 2)  # Ligne droite
+        
+    def draw_target(self, cell):
+        x, y = cell.target.body.position
+        color = (255, 255, 255)
+        transformed_x, transformed_y = self.transform_shape(x, y)
+        transformed_radius = int(cell.target.shape.radius * self.zoom_factor * 4)
+        pygame.draw.circle(self.window, color, (int(transformed_x), int(transformed_y)), int(transformed_radius), transformed_radius)
 
     # # Fonction pour dessiner des formes avec transformation
     # def draw_transformed_rect(self, window, color, rect, zoom_factor, offset_x, offset_y, width=0):

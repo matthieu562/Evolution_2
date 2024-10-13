@@ -4,6 +4,7 @@ import pygame
 import pymunk
 import numpy as np
 
+from brain import Brain
 from camera import Camera  # Importation de la classe Camera
 from cell import Cell
 from collision_handler import Collision_Handler
@@ -22,7 +23,7 @@ class Game:
     def __init__(self) -> None:
         pygame.init()
         
-        ## Set up window ##
+        # Set up window 
         pygame.display.set_caption(GAME_TITLE)
         os.environ['SDL_VIDEO_WINDOW_POS'] = '700,100'  # Defines where the windows spawns
 
@@ -36,9 +37,10 @@ class Game:
         self.collision_handler = Collision_Handler(self)
         self.space.add_collision_handler(CELL_COLLISION_TYPE, FOOD_COLLISION_TYPE).begin = self.collision_handler.handle_collision_cell_vs_food
         self.space.add_collision_handler(CELL_COLLISION_TYPE, CELL_COLLISION_TYPE).begin = self.collision_handler.handle_collision_cell_vs_cell
+        self.space.add_collision_handler(CELL_COLLISION_TYPE, CELL_COLLISION_TYPE).separate  = self.collision_handler.separate_cells
 
-        ## Init attributes
-        self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        # Init attributes
+        self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
         self.menu_manager = Menu_Manager()
         self.clock = pygame.time.Clock()
         self.population = Population(self.space)
@@ -52,6 +54,14 @@ class Game:
         self.population.add_cells(cells)
         foods = Food.create_new_foods(self.space, NB_CELLS, self.images.food_image)
         self.population.add_foods(foods)
+        
+        ## Filter creation
+        self.cell_filter = pymunk.ShapeFilter(group=1)
+        self.food_filter = pymunk.ShapeFilter(group=2)
+        self.food_and_cell_filter = pymunk.ShapeFilter(group=1 | 2)
+
+        # Brain
+        self.brain = Brain()
         
         ## Attributes created later
         self.events = None
@@ -74,10 +84,10 @@ class Game:
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:  # Zoom avant
                     zoom_amount = 0.1
-                    # self.camera.zoom_factor *= 1.1
                 elif event.y < 0:  # Zoom arrière
-                    # self.camera.zoom_factor /= 1.1
                     zoom_amount = -0.1
+                else:
+                    zoom_amount = 0
                     
                 self.camera.zoom(zoom_amount)
 
@@ -101,7 +111,14 @@ class Game:
 
     def add_static_walls(self):
         """Ajoute des lignes statiques aux bords de la fenêtre."""
-        radius = 5
+        # offset = 20
+        # self.walls = [
+        #     pymunk.Segment(self.space.static_body, (0 - offset, 0), (0 - offset, WINDOW_HEIGHT), offset),  # Bord gauche
+        #     pymunk.Segment(self.space.static_body, (0, WINDOW_HEIGHT + offset), (WINDOW_WIDTH, WINDOW_HEIGHT + offset), offset),  # Bord bas
+        #     pymunk.Segment(self.space.static_body, (WINDOW_WIDTH + offset, WINDOW_HEIGHT), (WINDOW_WIDTH + offset, 0), offset),  # Bord droit
+        #     pymunk.Segment(self.space.static_body, (WINDOW_WIDTH, 0 - offset), (0, 0 - offset), offset)  # Bord haut
+        # ]
+        radius = 8
         self.walls = [
             pymunk.Segment(self.space.static_body, (0, 0), (0, WINDOW_HEIGHT), radius),  # Bord gauche
             pymunk.Segment(self.space.static_body, (0, WINDOW_HEIGHT), (WINDOW_WIDTH, WINDOW_HEIGHT), radius),  # Bord bas
@@ -137,9 +154,20 @@ class Game:
                 is_prey_controlled = any(arrow_keys) or is_prey_controlled
 
                 for cell in self.population.all_cells:
+                    cell.update_status_before_move(self.food_and_cell_filter)
+                    
+                self.collision_handler.handle_ongoing_collisions()
+                    
+                for cell in self.population.all_cells:
+                    # cell 0 used for debug :
+                    # if self.population.all_cells.index(cell) == 0 and cell.target:
+                    #     self.camera.draw_target(cell)
                     is_controlled_by_user = self.population.all_cells.index(cell) == 0 and is_prey_controlled
-
-                    cell.move(is_controlled_by_user, arrow_keys)
+                    brain_command = None
+                    if cell.target:
+                        accel, angle_speed = self.brain.bot_control(cell)
+                        brain_command = (accel, angle_speed)
+                    cell.move(is_controlled_by_user, arrow_keys, brain_command)
                     is_alive, new_born = cell.update_status()
                     if not is_alive:
                         self.population.cell_killed(cell, self.space)
@@ -147,6 +175,7 @@ class Game:
                         self.population.add_cells(new_born)
 
                     self.camera.draw_transformed_image(cell.image, cell.body.position, cell.body.angle)
+                    # self.camera.draw_vision_cone(cell)
 
                 for food in self.population.all_foods:
                     self.camera.draw_transformed_image(food.image, food.body.position)
@@ -155,7 +184,7 @@ class Game:
                     self.camera.draw_transformed_line(WALL_COLOR, wall.a, wall.b, 2*wall.radius)
 
                 if menu_globals.game_clock % FPS == 0 and len(self.population.all_foods) <= MAX_FOODS:
-                    foods = Food.create_new_foods(self.space, 5, self.images.food_image)
+                    foods = Food.create_new_foods(self.space, FOOD_SPAWN_AMOUNT, self.images.food_image)
                     self.population.add_foods(foods)
 
             self.space.step(4/FPS)

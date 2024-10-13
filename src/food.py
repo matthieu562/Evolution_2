@@ -14,13 +14,15 @@ class Food:
         
         # Defines attributes
         self.body = pymunk.Body(mass, inertia)
-        self.color = color
+        self.body.object = self
+        self.body.position = position
+        
         self.shape = pymunk.Circle(self.body, radius)
         self.shape.collision_type = FOOD_COLLISION_TYPE
+        self.color = color
         self.image = pygame.transform.scale(image, (int(radius * 2.2), int(radius * 2.2)))  # Adjust to radius
 
         # Update "inner" attributes
-        self.body.position = position
         self.shape.elasticity = 0.8
         space.add(self.body, self.shape)
         
@@ -39,9 +41,10 @@ class Food:
     @classmethod
     def create_new_foods(cls, space, nb_new_food, image):
         new_foods = []
+        offset = 10
         for i in range(nb_new_food):
-            x=random.randint(0, WINDOW_WIDTH)
-            y=random.randint(0, WINDOW_HEIGHT)
+            x=random.randint(0 + offset, WINDOW_WIDTH - offset)
+            y=random.randint(0 + offset, WINDOW_HEIGHT - offset)
             radius=random.randint(CELL_MIN_SIZE, CELL_MAX_SIZE)
             color=(122, 0, 122) if i != 0 else (0, 45, 223)
             # image=image

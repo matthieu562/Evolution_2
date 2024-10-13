@@ -1,12 +1,12 @@
 from pathlib import Path
-
+import math
 
 GAME_TITLE = 'Evolution 2'
 
 BASE_PATH = Path(__file__).parent.parent
 IMAGES_PATH = BASE_PATH / 'static' / 'assets' / 'images' 
 
-WINDOW_WIDTH = 800
+WINDOW_WIDTH = 1000
 WINDOW_HEIGHT = 600
 
 FPS = 60
@@ -24,7 +24,12 @@ CELL_MAX_ENERGY = 100
 ENERGY_LOSS_OVERTIME = 3
 CELL_MAX_LIFE_POINTS = 100
 
-REPRODUCTION_DELAY = 6
+REPRODUCTION_DELAY = 5
 MAX_FOODS = 100
+FOOD_SPAWN_AMOUNT = 15
 
 WALL_COLOR = (110, 86, 10)
+
+VISION_DISTANCE = 150
+VISION_ANGLE = math.pi / 2
+MOUTH_ANGLE = math.radians(30)
