@@ -32,8 +32,8 @@ class Food:
 
     # def create_new_foods(self, nb_new_food):
     #     for i in range(nb_new_food):
-    #         x=random.randint(0, WINDOW_WIDTH)
-    #         y=random.randint(0, WINDOW_HEIGHT)
+    #         x=random.randint(0, WORLD_WIDTH)
+    #         y=random.randint(0, WORLD_HEIGHT)
     #         radius=random.randint(CELL_MIN_SIZE, CELL_MAX_SIZE)
     #         color=(120, 190, 120) 
     #         self.all_foods.append(Food(self.space, (x, y), radius, color))
@@ -43,8 +43,8 @@ class Food:
         new_foods = []
         offset = 10
         for i in range(nb_new_food):
-            x=random.randint(0 + offset, WINDOW_WIDTH - offset)
-            y=random.randint(0 + offset, WINDOW_HEIGHT - offset)
+            x=random.randint(0 + offset, WORLD_WIDTH - offset)
+            y=random.randint(0 + offset, WORLD_HEIGHT - offset)
             radius=random.randint(CELL_MIN_SIZE, CELL_MAX_SIZE)
             color=(122, 0, 122) if i != 0 else (0, 45, 223)
             # image=image

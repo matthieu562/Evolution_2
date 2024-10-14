@@ -13,6 +13,7 @@ class Camera:
         self.dragging = False
         self.last_mouse_pos = None
         self.window = window
+        self.font = pygame.font.Font(None, 36)
 
     def transform_shape(self, x, y):
         return x * self.zoom_factor + self.offset_x, y * self.zoom_factor + self.offset_y
@@ -81,6 +82,24 @@ class Camera:
         transformed_x, transformed_y = self.transform_shape(x, y)
         transformed_radius = int(cell.shape.radius * self.zoom_factor * 4)
         pygame.draw.circle(self.window, color, (int(transformed_x), int(transformed_y)), int(transformed_radius), transformed_radius)
+    
+    def draw_id(self, cell):
+        """Dessine l'ID de la cellule au-dessus de la cellule."""
+        x, y = cell.body.position
+        transformed_x, transformed_y = self.transform_shape(x, y)
+
+        # Créer une surface de texte pour l'ID
+        id_text = self.font.render(str(cell.id), True, (255, 0, 0))  # Rouge
+        text_rect = id_text.get_rect(center=(int(transformed_x), int(transformed_y - 20)))  # Positionner au-dessus de la cellule
+
+        # Dessiner le texte dans la fenêtre
+        self.window.blit(id_text, text_rect)
+
+    def follow_cell(self, cell):
+        """Fait en sorte que la caméra suive une cellule en la gardant au centre de l'écran."""
+        # Centrer la cellule à l'écran
+        self.offset_x = (WINDOW_WIDTH / 2) - (cell.body.position.x * self.zoom_factor)
+        self.offset_y = (WINDOW_HEIGHT / 2) - (cell.body.position.y * self.zoom_factor)
 
     # # Fonction pour dessiner des formes avec transformation
     # def draw_transformed_rect(self, window, color, rect, zoom_factor, offset_x, offset_y, width=0):

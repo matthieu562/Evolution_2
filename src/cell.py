@@ -16,6 +16,12 @@ SIGMA_ACCEL = 0.5
 
 class Cell:
 
+    cell_id = 0
+
+    @classmethod
+    def initialize(cls):
+        cls.cell_id = 0
+
     def __init__(self, space, position, radius, color, images, angle) -> None:
         mass = (radius - CELL_MIN_SIZE)/(CELL_MAX_SIZE - CELL_MIN_SIZE)*(CELL_MAX_MASS - CELL_MIN_MASS) + CELL_MIN_MASS
         inertia = pymunk.moment_for_circle(mass, 0, radius)
@@ -48,7 +54,16 @@ class Cell:
 
         self.space = space
         self.space.add(self.body, self.shape)
-  
+                
+        self.id = Cell.cell_id
+        Cell.cell_id += 1
+
+    # Implémentation de l'opérateur '<'
+    def __lt__(self, other):
+        if isinstance(other, Cell):
+            return self.id < other.id
+        return NotImplemented
+
     def move(self, is_controlled_by_user=False, arrow_keys=(0, 0, 0, 0), brain_command=None):
         self.compute_new_angle_accel(is_controlled_by_user, arrow_keys, brain_command)        
         self.compute_new_accel(is_controlled_by_user, arrow_keys, brain_command)
@@ -106,17 +121,17 @@ class Cell:
         new_cells = []
         for i in range(nb_new_cell):
             # Réinitialiser les variables à None pour garantir la génération de nouvelles valeurs si non fournies
-            x_rand = x if x is not None else random.randint(0, WINDOW_WIDTH)
-            y_rand = y if y is not None else random.randint(0, WINDOW_HEIGHT)
+            x_rand = x if x is not None else random.randint(0, WORLD_WIDTH)
+            y_rand = y if y is not None else random.randint(0, WORLD_HEIGHT)
             angle_rand = angle if angle else math.radians(random.randint(0, 360))
             radius_rand = radius if radius is not None else random.randint(CELL_MIN_SIZE, CELL_MAX_SIZE)
             color = (122, 0, 122) if i != 0 else (0, 45, 223)
             new_cells.append(Cell(space, (x_rand, y_rand), radius_rand, color, images, angle_rand))
         return new_cells
-            
-    def update_status_before_move(self, food_and_cell_filter):
+  
+    def update_status_before_move(self, food_and_cell_filter, player_family_members):
         self.update_vision(food_and_cell_filter)
-        self.select_target()
+        self.select_target(player_family_members)
         
     def update_status(self):
         self.choose_correct_image()
@@ -125,18 +140,30 @@ class Cell:
         new_born = self.get_birth()
         return self.is_alive(), new_born
 
-    def select_target(self):
+    def select_target(self, player_family_members):
         self.target = None
-        if self.energy >= 50 and self.life_points >= 50:
-            for visible_object in self.visible_objects[::-1]:
-                if isinstance(visible_object, Cell):
-                    self.target = visible_object
-            if not self.target and self.visible_objects:
-                self.target = self.visible_objects[0]
+        if self in player_family_members:
+            if self.energy >= 50 and self.life_points >= 50:
+                for visible_object in self.visible_objects[::-1]:
+                    if isinstance(visible_object, Cell) and visible_object.id != 0:
+                        self.target = visible_object
+                if not self.target and self.visible_objects:
+                    self.target = self.visible_objects[0]
+            else:
+                for visible_object in self.visible_objects[::-1]:
+                    if isinstance(visible_object, Food):
+                        self.target = visible_object
         else:
-            for visible_object in self.visible_objects[::-1]:
-                if isinstance(visible_object, Food):
-                    self.target = visible_object
+            if self.energy >= 50 and self.life_points >= 50:
+                for visible_object in self.visible_objects[::-1]:
+                    if isinstance(visible_object, Cell):
+                        self.target = visible_object
+                if not self.target and self.visible_objects:
+                    self.target = self.visible_objects[0]
+            else:
+                for visible_object in self.visible_objects[::-1]:
+                    if isinstance(visible_object, Food):
+                        self.target = visible_object
                 
     def is_alive(self):
         has_energy=True if self.energy > 0 else False

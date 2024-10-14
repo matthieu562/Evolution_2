@@ -19,6 +19,9 @@ class Collision_Handler:
         cell1_object = cell1_body.object
         cell2_object = cell2_body.object
 
+        # Ajouter les cellules à l'ensemble des collisions
+        self.colliding_cells.add(tuple(sorted((cell1_object, cell2_object))))
+
         is_cell1_facing, is_cell2_facing = self.is_facing_each_other(cell1_body, cell2_body)
         if is_cell1_facing:
             cell2_object.get_charged(cell1_object)
@@ -26,8 +29,6 @@ class Collision_Handler:
         if is_cell2_facing:
             cell1_object.get_charged(cell2_object)
 
-        # Ajouter les cellules à l'ensemble des collisions
-        self.colliding_cells.add((cell1_object, cell2_object))
         return True  # Continue with the normal collision handling
 
     def separate_cells(self, arbiter, space, data):
@@ -39,7 +40,7 @@ class Collision_Handler:
         cell2_object = cell2_body.object
 
         # Retirer les cellules de l'ensemble des collisions
-        self.colliding_cells.discard((cell1_object, cell2_object))
+        self.colliding_cells.discard(tuple(sorted((cell1_object, cell2_object))))
         return True
 
     def handle_collision_cell_vs_food(self, arbiter, space, data):

@@ -5,7 +5,7 @@ from constants import *
 
 
 class Images:
-    
+
     def __init__(self) -> None:
         self.cell_image = pygame.image.load(IMAGES_PATH / 'cell.png')
         self.cell_image = pygame.transform.rotate(self.cell_image, 180)
@@ -23,7 +23,7 @@ class Images:
         self.user_cell_images = [self.user_cell_image, self.user_cell_image_lvl1_damaged, self.user_cell_image_lvl2_damaged]
         self.food_image = pygame.image.load(IMAGES_PATH / 'food.png')
         # self.food_image = self.load_image_with_red_tint(IMAGES_PATH / 'food.png', 0.1)
-        
+
 
     ## Met un film rouge, mais pas opti car parcourt chaque pixel
     # def load_image_with_red_tint(self, image_path, red_factor):

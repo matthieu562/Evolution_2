@@ -14,18 +14,20 @@ from menu_manager import Menu_Manager
 from population import Population
 import menu_globals
 
-NB_CELLS = 10
-NB_FOODS = 50
+
+NB_CELLS = 150
+NB_FOODS = 300
 
 class Game:
-    
-    def __init__(self, menu_manager, window) -> None:       
+
+    def __init__(self, menu_manager, window) -> None:
+        # Loop sur créé (new), init, start. Dans un tableau
         # Handle the Space
         self.space = pymunk.Space()
         self.space.gravity = (0, 0)  # Pas de gravité
         self.space.damping = 0.5  # Frottement global
         self.add_static_walls()
-        
+
         # Handle collision
         self.collision_handler = Collision_Handler(self)
         self.space.add_collision_handler(CELL_COLLISION_TYPE, FOOD_COLLISION_TYPE).begin = self.collision_handler.handle_collision_cell_vs_food
@@ -41,13 +43,14 @@ class Game:
         self.camera = Camera(self.window)
 
         # Populate space
+        Cell.initialize()
         cell = Cell.create_new_cells(self.space, 1, self.images.user_cell_images)
         self.population.add_cells(cell)
         cells = Cell.create_new_cells(self.space, NB_CELLS, self.images.cell_images)
         self.population.add_cells(cells)
         foods = Food.create_new_foods(self.space, NB_CELLS, self.images.food_image)
         self.population.add_foods(foods)
-        
+
         ## Filter creation
         self.cell_filter = pymunk.ShapeFilter(group=1)
         self.food_filter = pymunk.ShapeFilter(group=2)
@@ -55,12 +58,13 @@ class Game:
 
         # Brain
         self.brain = Brain()
-        
+
         ## Attributes created later
         self.display_user_position = False
+        self.follow_cell = True
         self.events = None
         # self.walls = None
-        
+
   
     def handle_user_inputs(self):
         for event in self.events:
@@ -75,6 +79,8 @@ class Game:
                     self.camera.offset_x, self.camera.offset_y = 0, 0  # Offset de déplacement
                 if event.key == pygame.K_SPACE:
                     self.display_user_position = not self.display_user_position
+                if event.key == pygame.K_t:
+                    self.follow_cell = not self.follow_cell
             # Gestion du zoom
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:  # Zoom avant
@@ -83,7 +89,7 @@ class Game:
                     zoom_amount = -0.1
                 else:
                     zoom_amount = 0
-                    
+
                 self.camera.zoom(zoom_amount)
 
             if event.type == pygame.VIDEORESIZE:
@@ -114,26 +120,36 @@ class Game:
         """Ajoute des lignes statiques aux bords de la fenêtre."""
         # offset = 20
         # self.walls = [
-        #     pymunk.Segment(self.space.static_body, (0 - offset, 0), (0 - offset, WINDOW_HEIGHT), offset),  # Bord gauche
-        #     pymunk.Segment(self.space.static_body, (0, WINDOW_HEIGHT + offset), (WINDOW_WIDTH, WINDOW_HEIGHT + offset), offset),  # Bord bas
-        #     pymunk.Segment(self.space.static_body, (WINDOW_WIDTH + offset, WINDOW_HEIGHT), (WINDOW_WIDTH + offset, 0), offset),  # Bord droit
-        #     pymunk.Segment(self.space.static_body, (WINDOW_WIDTH, 0 - offset), (0, 0 - offset), offset)  # Bord haut
+        #     pymunk.Segment(self.space.static_body, (0 - offset, 0), (0 - offset, WORLD_HEIGHT), offset),  # Bord gauche
+        #     pymunk.Segment(self.space.static_body, (0, WORLD_HEIGHT + offset), (WORLD_WIDTH, WORLD_HEIGHT + offset), offset),  # Bord bas
+        #     pymunk.Segment(self.space.static_body, (WORLD_WIDTH + offset, WORLD_HEIGHT), (WORLD_WIDTH + offset, 0), offset),  # Bord droit
+        #     pymunk.Segment(self.space.static_body, (WORLD_WIDTH, 0 - offset), (0, 0 - offset), offset)  # Bord haut
         # ]
         radius = 8
         self.walls = [
-            pymunk.Segment(self.space.static_body, (0, 0), (0, WINDOW_HEIGHT), radius),  # Bord gauche
-            pymunk.Segment(self.space.static_body, (0, WINDOW_HEIGHT), (WINDOW_WIDTH, WINDOW_HEIGHT), radius),  # Bord bas
-            pymunk.Segment(self.space.static_body, (WINDOW_WIDTH, WINDOW_HEIGHT), (WINDOW_WIDTH, 0), radius),  # Bord droit
-            pymunk.Segment(self.space.static_body, (WINDOW_WIDTH, 0), (0, 0), radius)  # Bord haut
+            pymunk.Segment(self.space.static_body, (0, 0), (0, WORLD_HEIGHT), radius),  # Bord gauche
+            pymunk.Segment(self.space.static_body, (0, WORLD_HEIGHT), (WORLD_WIDTH, WORLD_HEIGHT), radius),  # Bord bas
+            pymunk.Segment(self.space.static_body, (WORLD_WIDTH, WORLD_HEIGHT), (WORLD_WIDTH, 0), radius),  # Bord droit
+            pymunk.Segment(self.space.static_body, (WORLD_WIDTH, 0), (0, 0), radius)  # Bord haut
         ]
         for wall in self.walls:
             wall.elasticity = 0.9
             wall.friction = 0.5
         self.space.add(*self.walls)
 
+    def is_player_alive(self):
+        return any(cell.id == 0 for cell in self.population.all_cells)
+
+    def enable_respawn(self):
+        if menu_globals.respawn_enabled and not self.is_player_alive():
+            cell = Cell.create_new_cells(self.space, 1, self.images.user_cell_images)
+            cell[0].id = 0
+            self.population.add_cells(cell)
+
     def run(self):
         is_prey_controlled = False
-        
+
+        # State machine
         while menu_globals.game_running:
             self.events = pygame.event.get()
             self.handle_user_inputs()
@@ -153,19 +169,25 @@ class Game:
                     keyboard_keys[pygame.K_UP]
                 )
                 is_prey_controlled = any(arrow_keys) or is_prey_controlled
+                self.enable_respawn()
+                for cell in self.population.all_cells:
+                    cell.update_status_before_move(self.food_and_cell_filter, self.population.all_player_family_members)
 
-                for cell in self.population.all_cells:
-                    cell.update_status_before_move(self.food_and_cell_filter)
-                    
                 self.collision_handler.handle_ongoing_collisions()
-                
+                    
+                # Signaux slot python
+                # Architecture : Component based Architecture
                 for cell in self.population.all_cells:
+                ## Debug
+                    # self.camera.draw_id(cell)
                     # cell 0 used for debug :
                     # if self.population.all_cells.index(cell) == 0 and cell.target:
                     #     self.camera.draw_circle(cell.target)
-                    if self.population.all_cells.index(cell) == 0 and self.display_user_position:
+                    if cell.id == 0 and self.display_user_position:
                         self.camera.draw_circle(cell)
-                    is_controlled_by_user = self.population.all_cells.index(cell) == 0 and is_prey_controlled
+                    if cell.id == 0 and self.follow_cell:
+                        self.camera.follow_cell(cell)
+                    is_controlled_by_user = cell.id == 0 and is_prey_controlled
                     brain_command = None
                     if cell.target:
                         accel, angle_speed = self.brain.bot_control(cell)
@@ -176,6 +198,10 @@ class Game:
                         self.population.cell_killed(cell, self.space)
                     if new_born:
                         self.population.add_cells(new_born)
+                    if cell in self.population.all_player_family_members and not is_alive:
+                        self.population.player_family_members_killed(cell)
+                    if new_born and (cell.id == 0 or cell in self.population.all_player_family_members):
+                        self.population.add_player_family_members(new_born)
 
                     self.camera.draw_transformed_image(cell.image, cell.body.position, cell.body.angle)
                     # self.camera.draw_vision_cone(cell)
@@ -190,8 +216,8 @@ class Game:
                     foods = Food.create_new_foods(self.space, FOOD_SPAWN_AMOUNT, self.images.food_image)
                     self.population.add_foods(foods)
 
-            self.space.step(4/FPS)
-            menu_globals.game_clock += 1
+                self.space.step(4/FPS)
+                menu_globals.game_clock += 1
             self.clock.tick()
             pygame.display.flip()
             pygame.time.Clock().tick(FPS)

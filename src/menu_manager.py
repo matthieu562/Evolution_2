@@ -14,11 +14,12 @@ class Menu_Manager:
     def create_main_menu(self):
         main_menu = pygame_menu.Menu('Evolution 2 !', self.window_width, self.window_height, theme=pygame_menu.themes.THEME_DARK)
         main_menu.add.button('Play', self.start_game)
-        main_menu.add.button('Quit', pygame_menu.events.EXIT)
+        # main_menu.add.button('Quit', self.quit_game) #pygame_menu.events.EXIT
         return main_menu
 
     def create_pause_menu(self):
         pause_menu = pygame_menu.Menu('Pause', self.window_width, self.window_height, theme=pygame_menu.themes.THEME_DARK)
+        self.respawn_button = pause_menu.add.button('Respawns disabled', self.respawn)
         pause_menu.add.button('Resume', self.resume_game)
         pause_menu.add.button('Back to menu', self.go_to_main_menu)
         pause_menu.add.button('Quit', self.quit_game)
@@ -33,6 +34,10 @@ class Menu_Manager:
         pygame.quit()
         exit()
     
+    def respawn(self):
+        menu_globals.respawn_enabled = not menu_globals.respawn_enabled
+        self.respawn_button.set_title('Respawns enabled' if menu_globals.respawn_enabled else 'Respawns disabled')
+
     def start_game(self):
         menu_globals.is_first_loop = True
         menu_globals.game_running = True
