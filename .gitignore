@@ -2,4 +2,9 @@ env_Evolution_2
 note.txt
 __pycache__
 Playground
-
+*.spec
+*.toc
+*.pyz
+*.html
+dist/
+build/

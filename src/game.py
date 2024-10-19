@@ -65,7 +65,6 @@ class Game:
         self.events = None
         # self.walls = None
 
-  
     def handle_user_inputs(self):
         for event in self.events:
             if event.type == pygame.QUIT:

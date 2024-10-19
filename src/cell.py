@@ -29,7 +29,6 @@ class Cell:
         # Defines attributes
         self.body = pymunk.Body(mass, inertia)
         self.body.object = self
-
         self.body.position = position
         self.body.angle = angle
         

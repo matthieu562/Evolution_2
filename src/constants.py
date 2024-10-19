@@ -1,9 +1,21 @@
 from pathlib import Path
 import math
 
+import sys
+import os
+
+# Pour créer un exécutable avec pyinstaller
+if getattr(sys, 'frozen', False):
+    # commande to get the .exe (do it in Evolution/src folder)
+    #pyinstaller --onefile --add-data "../static/assets/images;static/assets/images" main.py
+    BASE_PATH = sys._MEIPASS
+else:
+    BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Pendant le développement
+BASE_PATH = Path(BASE_PATH)
+# BASE_PATH = Path(__file__).parent.parent # En mode normale quand y a pas bsoin de ce qu'il y a haut dessus
+
 GAME_TITLE = 'Evolution 2'
 
-BASE_PATH = Path(__file__).parent.parent
 IMAGES_PATH = BASE_PATH / 'static' / 'assets' / 'images' 
 
 WINDOW_WIDTH = 1000
